@@ -16,29 +16,23 @@ class Game {
   }
 
   init(count) {
-    this.player = new Player(100, 100, 10);
+    var playerSize = 5;
+
+    this.player = new Player(100, 100, playerSize, this.width, this.height);
 
     this.enemys = [];
     var i;
-    for (i = 0; i < count; i++) {
+
+    for (i = 1; i < count + 1; i++) {
+      var size = playerSize  * i;
       this.enemys.push(new Enemy(
-        Math.floor(Math.random()*3 + 1),
-        Math.floor(Math.random()*3 + 1),
-        Math.floor(Math.random()*60  + 10),
-        Math.floor(Math.random()*(this.width - 100) + 100),
-        Math.floor(Math.random()*(this.height - 100) + 100),
+        Math.random() < 0.5 ? Math.floor(Math.random() * 3 + 1) : -Math.floor(Math.random() * 4 + 1),
+        Math.random() < 0.5 ? Math.floor(Math.random() * 3  + 1) : -Math.floor(Math.random() * 4 + 1),
+        Math.floor(size),
+        this.width - size,
+        Math.floor(Math.random() * (this.height - 2*  size) + size),
         this.width, this.height, this.player))
     }
-
-    for (i = 0; i < 4; i++) {
-      this.enemys.push(new Enemy(
-        Math.floor(Math.random()*3 + 1),
-        Math.floor(Math.random()*3 + 1),
-        Math.floor(9*i),
-        Math.floor(Math.random()*(this.width - 100) + 100),
-        Math.floor(Math.random()*(this.height - 100) + 100),
-        this.width, this.height, this.player))
-    } 
   }
 
   setMousePos(mousePos) {
@@ -52,7 +46,6 @@ class Game {
       this.player.mouseY = this.mousePos.y;
     }
 
-    this.player.tick();
 
     this.enemys.forEach(function (enemy, ) {
       enemy.tick();
@@ -65,16 +58,17 @@ class Game {
     if (this.enemys.length === 0) {
       state = states.playerWon;
     }
+
+    this.player.tick();
+
   }
 
   draw(ctx) {
     ctx.clearRect(0, 0, this.width, this.height);
 
     // draw background
-    ctx.beginPath();
     ctx.fillStyle = "black";
     ctx.fillRect(0, 0, this.width, this.height);
-    ctx.closePath();
 
     this.player.draw(ctx)
 
@@ -82,14 +76,33 @@ class Game {
       enemy.draw(ctx);
     });
 
+    if (state === states.playing) {
+      ctx.font = "30px Consolas";
+      ctx.fillStyle = "white";
+      ctx.fillText(this.player.size, 10, 30);
+    } else if (state === states.playerLost) {
+      ctx.font = "30px Consolas";
+      ctx.fillStyle = "black";
+      ctx.fillText("You lost!", this.width / 2 - 85, this.height / 2 - 50);
+      ctx.fillText("Press [Space] to play again!", this.width / 2 - 225, this.height / 2 + 50);
+
+    } else if (state === states.playerWon) {
+      ctx.font = "30px Consolas";
+      ctx.fillStyle = "black";
+      ctx.fillText("Congrats, you Won!", this.width / 2 - 130, this.height / 2 - 50);
+      ctx.fillText("Press [Space] to play again!", this.width / 2 - 225, this.height / 2 + 50);
+
+    }
   }
 }
 
 class Player {
-  constructor(x, y, size) {
+  constructor(x, y, size, limitX, limitY) {
     this.x = x;
     this.y = y;
     this.size = size;
+    this.limitX = limitX;
+    this.limitY = limitY;
     this.speed = 4;
     this.mouseX = x;
     this.mouseY = y;
@@ -110,9 +123,23 @@ class Player {
         state = states.playerLost;
       }
 
+      if(this.x + this.size > this.limitX){
+        this.x = this.limitX - this.size;
+      }
+      if(this.x - this.size < 0){
+        this.x = 0 + this.size;
+      }
+      if(this.y + this.size > this.limitY){
+        this.y = this.limitY - this.size;
+      }
+      if(this.y - this.size < 0){
+        this.y = 0 + this.size;
+      }
+
     } else if (state === states.playerWon) {
-      this.size += 2;
+      this.size += 1;
     }
+
   }
 
   draw(ctx) {
@@ -147,18 +174,26 @@ class Enemy {
   }
 
   collision() {
-    var distance = Math.ceil(Math.sqrt(Math.pow(this.player.x - this.x, 2) + Math.pow(this.player.y - this.y, 2)));
+    var distance = Math.floor(Math.sqrt(Math.pow(this.player.x - this.x, 2) + Math.pow(this.player.y - this.y, 2)));
     if (distance < this.player.size + this.size) {
       var d = this.player.size + this.size - distance;
-      if (this.player.size > this.size) {
-        this.player.size += d;
-        this.size -= d;
-        if (this.size < 0) this.size = 0;
+      if (this.player.size >= this.size) {
+        if (d < this.size) {
+          this.player.size += d;
+          this.size -= d;
+        } else {
+          this.player.size += this.size;
+          this.size = 0;
+        }
       }
       else {
-        this.player.size -= d;
-        if (this.player.size < 0) this.player.size = 0;
-        this.size += d;
+        if (d < this.player.size) {
+           this.player.size -= d;
+          this.size += d;
+        } else {
+          this.size += this.player.size;
+          this.player.size = 0;
+        }
       }
     }
   }
@@ -206,7 +241,9 @@ var ctx = cvs.getContext("2d");
 
 var game = new Game(ctx, cvs.clientWidth, cvs.clientHeight);
 
-game.init(5);
+var count = 8;
+
+game.init(count);
 
 window.addEventListener('mousemove', evt => {
   var rect = cvs.getBoundingClientRect();
@@ -221,7 +258,7 @@ window.onkeyup = function (e) {
     var key = e.keyCode ? e.keyCode : e.which;
     if (key == 32) {
       state = states.playing;
-      game.init(5);
+      game.init(count);
     }
   }
 }
