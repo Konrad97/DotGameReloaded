@@ -1,7 +1,7 @@
 {
     "compilerOptions": {
-        "outDir": "./build",
-        "allowJs": true,
+        "outFile": "./build/game.js",
+        "allowJs": false,
         "sourceMap": true,
         "target": "es5"
     },
