@@ -1,0 +1,12 @@
+{
+    "compilerOptions": {
+        "outFile": "./build/app.js",
+        "allowJs": false,
+        "sourceMap": true,
+        "target": "es5",
+        "module": "amd"
+    },
+    "include": [
+        "./ts/*"
+    ]
+}
